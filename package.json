@@ -1,0 +1,21 @@
+{
+  "name": "backtest_automation",
+  "version": "1.0.0",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "ts-node ./src/index.ts",
+    "build": "tsc -b",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": "https://github.com/rohan17ghy/backtest_automation.git",
+  "author": "Debopriya_Bhattachar <122197062+rohan17ghy@users.noreply.github.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/puppeteer": "^7.0.4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  },
+  "dependencies": {
+    "puppeteer": "^22.7.1"
+  }
+}
