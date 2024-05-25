@@ -1,0 +1,5 @@
+URLto get the WS url and version for chrome browser
+    -> http://localhost:9222/json/version
+
+Command for launching chrome with remote debugging
+    -> `chrome --remote-debugging-port=9222` 
