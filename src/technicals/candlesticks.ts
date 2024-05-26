@@ -3,6 +3,7 @@ import puppeteer from "puppeteer";
 import { sleep, Month } from "../datetime/datetime";
 import { waitForCanvasUpdate } from "../canvas/canvas";
 import { waitForSelectorWithBoolean } from "../selector";
+import axios, { AxiosResponse } from 'axios';
 
 export type Candle = {
     o: number,
@@ -16,14 +17,6 @@ export enum CandleColor{
     Green,
     Red
 }
-
-// async function getBrowserWSEndpoint() {
-//     console.log(`inside getBrowserWSEndpoint`);
-//     const targets = await CDP.List({ port: 9222 }); // Change the port if you're using a different one
-//     console.log(`Targets: ${JSON.stringify(targets)}`);
-//     const browserTarget = targets.find(target => target.type === 'page');
-//     return browserTarget?.webSocketDebuggerUrl;
-// }
 
 export async function getOHLC(date: number, month: Month, year: number, hour: number, minute: number){
     // const browser = await puppeteer.launch({
@@ -183,4 +176,23 @@ export async function getOHLC(date: number, month: Month, year: number, hour: nu
     await sleep(100000)
 
     return childElements;
+}
+
+export async function getSingleCandle(symbol: any, interval: number, dateTime: Date){
+    
+    const data = {
+        symbol,
+        interval,
+        dateTime
+    };
+
+    const response = await axios.get(`http://127.0.0.1:19232/candle/singleCandle`, 
+    {
+        data,  // Pass the data object as the data parameter
+        headers: {
+          'Content-Type': 'application/json',
+        },
+    });
+
+    return response.data;
 }
