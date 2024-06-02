@@ -20,3 +20,8 @@ Configure the browser for remote debugging
     -> Go to Shortcut -> Target
     -> after the path add `--remote-debugging-port=9222` 
     -> click apply
+
+
+Launch this Application
+    -> Create the fyers server(nse_ticker_cli project)
+    -> After that run this project

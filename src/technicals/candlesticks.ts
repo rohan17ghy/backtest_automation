@@ -1,24 +1,44 @@
 import puppeteer from "puppeteer";
 // import CDP from 'chrome-remote-interface';
-import { sleep, Month } from "../datetime/datetime";
+import { sleep, Month, dateMonthYearString } from "../datetime/datetime";
 import { waitForCanvasUpdate } from "../canvas/canvas";
 import { waitForSelectorWithBoolean } from "../selector";
 import axios, { AxiosResponse } from 'axios';
+import { getBNExpiriesGoCharting } from "../api/api";
+import { getBNExpiry } from "./options";
 
-export type Candle = {
-    o: number,
-    h: number,
-    l: number,
-    c: number,
-    color: CandleColor
+class Candle {
+    o: number;
+    h: number;
+    l: number;
+    c: number;
+    color: CandleColor;
+
+    constructor(o: number, h: number, l: number, c: number){
+        this.o = o;
+        this.h = h;
+        this.l = l;
+        this.c = c;
+
+        this.color = o-c > 0 ? CandleColor.Green : CandleColor.Red;
+    }
+}
+
+export enum Index{
+    BANKNIFTY = "NSE:BANKNIFTY",
+    NIFTY = "NSE:NIFTY"
+}
+
+export type Symbol = {
+    name: Index
 }
 
 export enum CandleColor{
-    Green,
-    Red
+    Green = "Green",
+    Red = "Red"
 }
 
-export async function getOHLC(date: number, month: Month, year: number, hour: number, minute: number){
+export async function get1minCandle(symbol: Symbol, dateTime: Date){
     // const browser = await puppeteer.launch({
     //     args: ['--no-sandbox', '--disable-notifications'],
     //     headless: false,
@@ -28,6 +48,12 @@ export async function getOHLC(date: number, month: Month, year: number, hour: nu
 
     // const browserWSEndpoint = await getBrowserWSEndpoint();
     // console.log(`BrowserWSEndpoint: ${browserWSEndpoint}`);
+
+    const date = dateTime.getDate();
+    const month = dateTime.getMonth();
+    const year = dateTime.getFullYear();
+    const hour = dateTime.getHours();
+    const minute = dateTime.getMinutes();
     
     const browserWSEndpoint = process.env.BROWSER_WEB_SOCKET_DEBUGGER_URL;
     console.log(`Connecting to browser...`);
@@ -38,7 +64,7 @@ export async function getOHLC(date: number, month: Month, year: number, hour: nu
     const page = await browser.newPage();
 
     // Navigate to a webpage
-    await page.goto('https://procharting.in/terminal?ticker=NSE:NIFTY', { timeout: timeoutDuration});
+    await page.goto(`https://procharting.in/terminal?ticker=${symbol.name}`, { timeout: timeoutDuration});
 
     console.log('Reached page');
 
@@ -178,6 +204,23 @@ export async function getOHLC(date: number, month: Month, year: number, hour: nu
     return childElements;
 }
 
+//We will select a strike where the first candle is not an exception
+//The premium should be in my range of 500-800 range
+async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date){
+    const dateMonthYear = dateMonthYearString(dateTime);
+    const expiry = await getBNExpiry(dateMonthYear);
+    if(expiry == null){
+        throw new Error(`Expiry not found for ${dateTime.toISOString()}`);
+    }
+
+    const bnSymbol: Symbol = {
+        name: Index.BANKNIFTY
+    };
+
+    const bnCandle = get1minCandle(bnSymbol, dateTime);
+
+}
+
 export async function getSingleCandle(symbol: any, interval: number, dateTime: Date){
     
     const data = {
@@ -186,7 +229,7 @@ export async function getSingleCandle(symbol: any, interval: number, dateTime: D
         dateTime
     };
 
-    const response = await axios.get(`http://127.0.0.1:19232/candle/singleCandle`, 
+    const response = await axios.get(`http://127.0.0.1:19232/candle/singleCandle`,
     {
         data,  // Pass the data object as the data parameter
         headers: {
