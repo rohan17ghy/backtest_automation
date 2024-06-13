@@ -1,14 +1,16 @@
 {
   "name": "backtest_automation",
   "version": "1.0.0",
+  "type": "module",
   "main": "./src/index.ts",
   "scripts": {
-    "dev": "ts-node ./src/index.ts",
+    "dev": "npx tsx ./src/index.ts",
     "build": "tsc -b",
+    "lint:check": "eslint .",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": "https://github.com/rohan17ghy/backtest_automation.git",
-  "author": "Debopriya_Bhattachar <122197062+rohan17ghy@users.noreply.github.com>",
+  "author": "rohan17ghy <122197062+rohan17ghy@users.noreply.github.com>",
   "license": "MIT",
   "devDependencies": {
     "@types/axios": "^0.14.0",
@@ -16,7 +18,12 @@
     "@types/pixelmatch": "^5.2.6",
     "@types/pngjs": "^6.0.5",
     "@types/puppeteer": "^7.0.4",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^9.4.0",
+    "eslint-plugin-import": "^2.29.1",
     "ts-node": "^10.9.2",
+    "tsx": "^4.15.4",
     "typescript": "^5.4.5"
   },
   "dependencies": {
