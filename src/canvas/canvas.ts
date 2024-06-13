@@ -1,7 +1,8 @@
 import puppeteer from "puppeteer";
 import pixelmatch from "pixelmatch";
 import { PNG } from "pngjs";
-const fs = require('fs');
+//const fs = require('fs');
+import fs from 'fs';
 
 
 export async function waitForCanvasUpdate(page: any, selector: any) {   

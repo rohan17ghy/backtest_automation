@@ -1,4 +1,5 @@
-import { getBNExpiriesGoCharting } from "../api/api";
+import { getBNExpiriesGoCharting } from "@/api/api";
+import { compareDates } from "@/datetime/datetime";
 
 export enum OptionType {
     CE = "CE",
@@ -6,8 +7,8 @@ export enum OptionType {
 }
 
 type OptionStrikes = {
-    ceStrikes?: number[],
-    peStrikes?: number[]
+    ceStrikes?: string[],
+    peStrikes?: string[]
 }
 
 export async function getBNExpiry(dateTime: string): Promise<string | null>{
@@ -17,14 +18,17 @@ export async function getBNExpiry(dateTime: string): Promise<string | null>{
         throw new Error(`No expiry found`);
     }
 
-    expiries.sort();
+    //sorting in descending order
+    expiries.sort((a, b) => b.localeCompare(a));
+
+    //console.log(`Expiries: ${expiries}`);
 
     //Binary search can be used here instead of linear search
-    expiries.forEach(element => {
-        if(dateTime > element){
-            return element;
+    for (let expiry of expiries){
+        if(compareDates(expiry, dateTime) <= 0){
+            return expiry;
         }
-    });
+    }
 
     return null;
 }
@@ -34,8 +38,8 @@ export async function getITMBNOptionStrikes(atmPrice: number, noOfStrikes: numbe
     const peStrikes = itmStrikes(OptionType.PE, atmPrice, noOfStrikes);
 
     return {
-        ceStrikes,
-        peStrikes
+        ceStrikes: ceStrikes.map(strike => `${strike}${OptionType.CE}`),
+        peStrikes: peStrikes.map(strike => `${strike}${OptionType.PE}`)
     }
 }
 

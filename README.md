@@ -21,6 +21,10 @@ Configure the browser for remote debugging
     -> after the path add `--remote-debugging-port=9222` 
     -> click apply
 
+Getting the chrome WS URL, 
+    -> http://localhost:9222/json/version, from this url we can get the ws url
+    -> Add the ws url to the environment variable `BROWSER_WEB_SOCKET_DEBUGGER_URL` in .env file
+
 
 Launch this Application
     -> Create the fyers server(nse_ticker_cli project)

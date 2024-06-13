@@ -1,5 +1,7 @@
 import axios, { AxiosResponse } from 'axios';
-import { OptionType } from '../technicals/options';
+import { OptionType } from '@/technicals/options';
+import { dateMonthYearString } from '@/datetime/datetime';
+import {OptionsChain} from '@/types';
 
 export const HTTPStatus = {
     OK: 200,
@@ -58,4 +60,45 @@ export async function getBNSymbolGoCharting(strikePrice: number, optionType: Opt
     catch(err){
         console.log(`${err}`);
     }
+}
+
+export async function getBNOptionsData(expiry: Date): Promise<OptionsChain[] | null>{
+    try{
+        const result = await axios.get(`https://procharting.in/api/instruments/search_at_expiry?q=NSE:OPTIONS:BANKNIFTY:${dateMonthYearString(expiry)}`,
+        {
+            headers: {
+            'Content-Type': 'application/json',
+            },
+        });
+
+        const optionsChain: OptionsChain[] = result.data.payload;
+        
+        return optionsChain
+        //console.log(`Option Chain: ${optionChain[0].exchange}, ${optionChain[0].invalidProp}, ${optionChain[0].name}`);
+    }
+    catch(err){
+        console.log(`Error getting BN Options Data${err}`);
+        return null;
+    }
+
+    
+}
+
+export async function getSingleCandle(symbol: any, interval: number, dateTime: Date){
+    
+    const data = {
+        symbol,
+        interval,
+        dateTime
+    };
+
+    const response = await axios.get(`http://127.0.0.1:19232/candle/singleCandle`,
+    {
+        data,  // Pass the data object as the data parameter
+        headers: {
+          'Content-Type': 'application/json',
+        },
+    });
+
+    return response.data;
 }

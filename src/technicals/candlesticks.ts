@@ -1,11 +1,12 @@
 import puppeteer from "puppeteer";
-// import CDP from 'chrome-remote-interface';
-import { sleep, Month, dateMonthYearString } from "../datetime/datetime";
-import { waitForCanvasUpdate } from "../canvas/canvas";
-import { waitForSelectorWithBoolean } from "../selector";
+import { sleep, Month, dateMonthYearString } from "@/datetime/datetime";
+import { waitForCanvasUpdate } from "@/canvas/canvas";
+import { waitForSelectorWithBoolean } from "@/selector";
 import axios, { AxiosResponse } from 'axios';
-import { getBNExpiriesGoCharting } from "../api/api";
-import { getBNExpiry } from "./options";
+import { getBNExpiriesGoCharting, getSingleCandle } from "@/api/api";
+import { getBNExpiry, getITMBNOptionStrikes } from "@/technicals/options";
+import { BrowserFactory, GoCharting } from "@/browser";
+import type { Symbol } from "@/types";
 
 class Candle {
     o: number;
@@ -22,6 +23,48 @@ class Candle {
 
         this.color = o-c > 0 ? CandleColor.Green : CandleColor.Red;
     }
+
+    isStrongBullish(){
+        const percent = this.calcWickPercent();
+        if(0 < percent && percent < 30){
+            return true;
+        }
+    
+        return false;
+    }
+    
+    isMediumBullish(){
+        const percent = this.calcWickPercent();
+        if(30 < percent && percent < 50){
+            return true;
+        }
+    
+        return false;
+    }
+    
+    isWeakBullish(){
+        const percent = this.calcWickPercent();
+        if(percent > 50){
+            return true;
+        }
+    
+        return false;
+    }
+    
+    calcWickPercent(){
+        const isGreen = this.c - this.o > 0;
+    
+        if(isGreen){
+            return this.calcGreenCandlePercent();
+        }else{
+            return this.calcGreenCandlePercent();
+        }
+    }
+    
+    calcGreenCandlePercent(){
+        const percent = (this.h - this.c) / (this.c - this.o);
+        return percent;
+    }
 }
 
 export enum Index{
@@ -29,9 +72,9 @@ export enum Index{
     NIFTY = "NSE:NIFTY"
 }
 
-export type Symbol = {
-    name: Index
-}
+
+
+
 
 export enum CandleColor{
     Green = "Green",
@@ -53,35 +96,21 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
     const month = dateTime.getMonth();
     const year = dateTime.getFullYear();
     const hour = dateTime.getHours();
-    const minute = dateTime.getMinutes();
+    const minute = dateTime.getMinutes();    
     
-    const browserWSEndpoint = process.env.BROWSER_WEB_SOCKET_DEBUGGER_URL;
-    console.log(`Connecting to browser...`);
-    const browser = await puppeteer.connect({ browserWSEndpoint, slowMo: 50, defaultViewport: null });    
-    console.log(`Browser connected`);
+    const browser = await BrowserFactory.getBrowser();
 
     const timeoutDuration = 90000;
     const page = await browser.newPage();
 
-    // Navigate to a webpage
-    await page.goto(`https://procharting.in/terminal?ticker=${symbol.name}`, { timeout: timeoutDuration});
+    const goCharting = await GoCharting.createInstance();
 
-    console.log('Reached page');
-
-    await page.waitForSelector('canvas#main', { timeout: timeoutDuration});
-    console.log('Canvas is loaded i.e. Chart is loaded');
+    //Navigate to page with symbol
+    await goCharting.navigateToPage(page, symbol);
     
-    //Closing the dismiss button    
-    //await page.waitForSelector('#notification-dismiss');
-    if(await waitForSelectorWithBoolean(page, '#notification-dismiss')){
-        await page.click('#notification-dismiss');
-    }  
+    await goCharting.closeDismissButtonIfPresent(page); 
     
-    //Closing the ad
-    //await page.waitForSelector('.css-juko39-CloseContainer');
-    if(await waitForSelectorWithBoolean(page, '.css-juko39-CloseContainer')){
-        await page.click('.css-juko39-CloseContainer');
-    }  
+    await goCharting.closeAdIfPresent(page);
 
     await page.click("#interval-selector-btn");
 
@@ -180,7 +209,7 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
     await page.waitForSelector('.tooltip-ohlc');
     console.log('OHLC loaded to the assigned date and time');
 
-    const childElements = await page.evaluate(() => {
+    const childElements: any[] = await page.evaluate(() => {
         // Select the parent div using class name
         const parentDiv = document.querySelector('.tooltip-ohlc');
         if (parentDiv) {
@@ -198,44 +227,95 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
     console.log(`Browser: ${JSON.stringify(browser)} Page: ${JSON.stringify(page)}`);
 
     //await browser.close();
-
-    await sleep(100000)
+    
+    await sleep(10000);
+    await page.close();
 
     return childElements;
 }
 
 //We will select a strike where the first candle is not an exception
 //The premium should be in my range of 500-800 range
-async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date){
+export async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date): Promise<{
+    ceStrike: Symbol,
+    peStrike: Symbol
+}>{
     const dateMonthYear = dateMonthYearString(dateTime);
+    console.log(`DateMonthYear: ${dateMonthYear}`);
     const expiry = await getBNExpiry(dateMonthYear);
     if(expiry == null){
         throw new Error(`Expiry not found for ${dateTime.toISOString()}`);
     }
 
+    console.log(`Expiry found: ${expiry}`);
+
     const bnSymbol: Symbol = {
         name: Index.BANKNIFTY
     };
 
-    const bnCandle = get1minCandle(bnSymbol, dateTime);
+    //const bnCandle = await get1minCandle(bnSymbol, dateTime);
+    const bnCandle = await getSingleCandle("NSE:NIFTYBANK-INDEX", 1, dateTime);
+    console.log(`1st min candle: ${JSON.stringify(bnCandle)}`);
+    const startingPrice = parseFloat(bnCandle.candles[0][1]);
+    const endingPrice = parseFloat(bnCandle.candles[0][4]);
+
+    console.log(`Starting price: ${startingPrice} Ending price ${endingPrice}`);
+
+    const atmPrice = (startingPrice + endingPrice) / 2;
+
+    const optionStrikes = await getITMBNOptionStrikes(atmPrice, 10);
+    console.log(`Option strikes: ${JSON.stringify(optionStrikes)}`);
+
+    const premiumLow = parseInt(process.env.PREMIUM_LOW ?? "");
+    const premiumHigh = parseInt(process.env.PREMIUM_HIGH ?? "");
+    const bestCEStrike = await bestStrike(optionStrikes.ceStrikes ?? [], dateTime, premiumLow, premiumHigh);
+    const bestPEStrike = await bestStrike(optionStrikes.peStrikes ?? [], dateTime, premiumLow, premiumHigh);
+
+    console.log(`BestCEStrike: ${bestCEStrike.name}`);
+    console.log(`BestPEStrike: ${bestPEStrike.name}`);
+    return { ceStrike: bestCEStrike, peStrike: bestPEStrike};
 
 }
 
-export async function getSingleCandle(symbol: any, interval: number, dateTime: Date){
-    
-    const data = {
-        symbol,
-        interval,
-        dateTime
-    };
+type SymbolWithFirstCandle = {symbol: Symbol, firstCandle: Candle};
 
-    const response = await axios.get(`http://127.0.0.1:19232/candle/singleCandle`,
-    {
-        data,  // Pass the data object as the data parameter
-        headers: {
-          'Content-Type': 'application/json',
-        },
-    });
+async function bestStrike(strikes: string[], dateTime: Date, premiumLow: number, premiumHigh: number){
 
-    return response.data;
+    const bestStrikes: SymbolWithFirstCandle[] = [];
+    for(let strike of strikes){
+        const symbol: Symbol = {
+            name: `${strike}`,
+        }
+
+        const candleArray = await get1minCandle(symbol, dateTime);
+        const o = candleArray[1];
+        const h = candleArray[3];
+        const l = candleArray[5];
+        const c = candleArray[7];
+
+        const candle = new Candle(o, h, l, c);
+
+        if(c < premiumLow || c > premiumHigh){
+            continue;
+        }
+
+        bestStrikes.push({symbol: symbol, firstCandle: candle})
+    }
+
+    bestStrikes.sort(bestStrikeComparer);
+    return bestStrikes[0].symbol;
+}
+
+function bestStrikeComparer(symbolWithFirstCandleA: SymbolWithFirstCandle, symbolWithFirstCandleB: SymbolWithFirstCandle){
+    const candleA = symbolWithFirstCandleA.firstCandle;
+    const candleB = symbolWithFirstCandleB.firstCandle;
+    const candleAPercent = candleA.calcWickPercent();
+    const candleBPercent = candleB.calcWickPercent();
+    if(candleAPercent < candleBPercent){
+        return -1;
+    }else if(candleAPercent == candleBPercent){
+        return 0;
+    }else{
+        return 1;
+    }
 }
