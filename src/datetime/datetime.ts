@@ -22,6 +22,10 @@ export function sleep(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+export function keepAlive() {
+    setTimeout(keepAlive, 50000); // 1-second intervals
+}
+
 //Comparing dates in format of YYYY-MM-DD
 export function compareDates(date1: string, date2: string): number {
     const parsedDate1 = new Date(date1);

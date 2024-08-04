@@ -1,10 +1,10 @@
 import puppeteer from "puppeteer";
 import { sleep, Month, dateMonthYearString } from "@/datetime/datetime";
-import { waitForCanvasUpdate } from "@/canvas/canvas";
+import { captureCanvasContent, waitForCanvasUpdate } from "@/canvas/canvas";
 import { waitForSelectorWithBoolean } from "@/selector";
 import axios, { AxiosResponse } from 'axios';
-import { getBNExpiriesGoCharting, getSingleCandle } from "@/api/api";
-import { getBNExpiry, getITMBNOptionStrikes } from "@/technicals/options";
+import { getBNExpiriesGoCharting, getBNOptionsData as getBNOptionsChain, getSingleCandle } from "@/api/api";
+import { getBNExpiry, buildITMBNOptionStrikes, OptionStrikes, getBNPremiumSymbols } from "@/technicals/options";
 import { BrowserFactory, GoCharting } from "@/browser";
 import type { Symbol } from "@/types";
 
@@ -98,7 +98,7 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
     const hour = dateTime.getHours();
     const minute = dateTime.getMinutes();    
     
-    const browser = await BrowserFactory.getBrowser();
+    const browser = await BrowserFactory.getCEBrowser();
 
     const timeoutDuration = 90000;
     const page = await browser.newPage();
@@ -114,13 +114,13 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
 
     await page.click("#interval-selector-btn");
 
-    //Changing the timeframe
-    await page.click('div[title="1 Minute"]');
-
     //Here we can't track when the canvas has updated completely
     //Since canvas changes don't change the DOM directly
     //So only option left is to keep a delay and 
-    await waitForCanvasUpdate(page, "canvas#main");
+    await waitForCanvasUpdate(page, async () => {
+        //Changing the timeframe
+        await page.click('div[title="1 Minute"]');
+    });
 
     //console.log('Giving a timeout of 5 sec');
     //await sleep(5000);
@@ -190,21 +190,21 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
     //await sleep(5000);
     //await waitForCanvasUpdate(page, "canvas#main");
 
-    page.evaluate(() => {
-        const buttons = Array.from(document.querySelectorAll('button'));
-        // Iterate through each button to find the one with text content 'Apply'
-        const applyButton = buttons.find(button => button.textContent?.trim() === 'Apply');
-        // Click the button if found
-        if (applyButton) {
-            applyButton.click();
-        } else {
-            console.log('Button not found.');
-        }
-    });
-
     // console.log('Giving a timeout of 5 sec');
     // await sleep(5000);
-    await waitForCanvasUpdate(page, "canvas#main");
+    await waitForCanvasUpdate(page, async () => {
+        await page.evaluate(() => {
+            const buttons = Array.from(document.querySelectorAll('button'));
+            // Iterate through each button to find the one with text content 'Apply'
+            const applyButton = buttons.find(button => button.textContent?.trim() === 'Apply');
+            // Click the button if found
+            if (applyButton) {
+                applyButton.click();
+            } else {
+                console.log('Button not found.');
+            }
+        });
+    });
 
     await page.waitForSelector('.tooltip-ohlc');
     console.log('OHLC loaded to the assigned date and time');
@@ -263,7 +263,7 @@ export async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date): Promise
 
     const atmPrice = (startingPrice + endingPrice) / 2;
 
-    const optionStrikes = await getITMBNOptionStrikes(atmPrice, 10);
+    const optionStrikes = await buildITMBNOptionStrikes(atmPrice, 10);
     console.log(`Option strikes: ${JSON.stringify(optionStrikes)}`);
 
     const premiumLow = parseInt(process.env.PREMIUM_LOW ?? "");
@@ -275,6 +275,50 @@ export async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date): Promise
     console.log(`BestPEStrike: ${bestPEStrike.name}`);
     return { ceStrike: bestCEStrike, peStrike: bestPEStrike};
 
+}
+
+export async function getBNNearITMStrikes(dateTime: Date): Promise<OptionStrikes>{
+    const dateMonthYear = dateMonthYearString(dateTime);
+    console.log(`DateMonthYear: ${dateMonthYear}`);
+    const expiry = await getBNExpiry(dateMonthYear);
+    if(expiry == null){
+        throw new Error(`Expiry not found for ${dateTime.toISOString()}`);
+    }
+
+    console.log(`Expiry found: ${expiry}`);
+
+    const bnSymbol: Symbol = {
+        name: Index.BANKNIFTY
+    };
+
+    //const bnCandle = await get1minCandle(bnSymbol, dateTime);
+    const bnCandle = await getSingleCandle("NSE:NIFTYBANK-INDEX", 1, dateTime);
+    console.log(`1st min candle: ${JSON.stringify(bnCandle)}`);
+    const openingPrice = parseFloat(bnCandle.candles[0][1]);
+    const closingPrice = parseFloat(bnCandle.candles[0][4]);
+
+    console.log(`Opening price: ${openingPrice} Closing price ${closingPrice}`);
+
+    //const atmPrice = (openingPrice + closingPrice) / 2;
+
+    const optionsChain = await getBNOptionsChain(new Date(expiry));
+    //console.log(`Options Chain : ${JSON.stringify(optionsChain)}`);
+
+    const optionStrikes = await buildITMBNOptionStrikes(openingPrice, 5);
+    console.log(`Option strikes: ${JSON.stringify(optionStrikes)}`);
+
+    const bnSymbols = await getBNPremiumSymbols(optionsChain ?? [], optionStrikes);
+
+    //console.log(`Premium symbols: ${JSON.stringify(bnSymbols)}`);
+
+    // const premiumLow = parseInt(process.env.PREMIUM_LOW ?? "");
+    // const premiumHigh = parseInt(process.env.PREMIUM_HIGH ?? "");
+    // const bestCEStrike = await bestStrike(optionStrikes.ceStrikes ?? [], dateTime, premiumLow, premiumHigh);
+    // const bestPEStrike = await bestStrike(optionStrikes.peStrikes ?? [], dateTime, premiumLow, premiumHigh);
+
+    // console.log(`BestCEStrike: ${bestCEStrike.name}`);
+    // console.log(`BestPEStrike: ${bestPEStrike.name}`);
+    return bnSymbols;
 }
 
 type SymbolWithFirstCandle = {symbol: Symbol, firstCandle: Candle};

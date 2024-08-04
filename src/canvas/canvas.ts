@@ -5,11 +5,14 @@ import { PNG } from "pngjs";
 import fs from 'fs';
 
 
-export async function waitForCanvasUpdate(page: any, selector: any) {   
+export async function waitForCanvasUpdate(page: any, callback: () => void) {   
 
     return new Promise(async (resolve, reject) => {
+        const selector = "canvas#main";
         let prevCanvasContent = await captureCanvasContent(page, selector);
 
+        callback();
+        
         const maxAttempts = 20;
         let currentAttempt = 1;
         let hasCanvasStartedChanging = false;
@@ -47,7 +50,7 @@ export async function waitForCanvasUpdate(page: any, selector: any) {
 }
 
 
-async function captureCanvasContent(page: any, canvasSelector: any) {
+export async function captureCanvasContent(page: any, canvasSelector: any) {
   const dataURI = await page.evaluate((selector: any) => {
     const canvas = document.querySelector(selector);
     return canvas.toDataURL(); // Capture canvas content as a data URI
