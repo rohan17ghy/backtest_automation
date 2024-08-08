@@ -181,22 +181,16 @@ export class GoCharting{
         //console.log(`Hour: ${hour}, Minute: ${minute}`);
 
         // Changing the hour
-        await page.waitForSelector('.react-datetime-picker__inputGroup__hour');
-        await page.evaluate((hour) => {
-            const inputElement = document.querySelector('.react-datetime-picker__inputGroup__hour') as HTMLInputElement; // Replace with the actual class name
-            if(inputElement){
-                inputElement.value = `${hour}`; // Replace with the desired new value
-            }
-        }, hour);
+        const inputHourSelector = '.react-datetime-picker__inputGroup__hour';
+        await page.waitForSelector(inputHourSelector);
+        const inputHourElement = await page.$(inputHourSelector);
+        inputHourElement?.type(hour.toString());
 
         //Changing the minute
-        await page.waitForSelector('.react-datetime-picker__inputGroup__minute');
-        await page.evaluate((minute) => {
-            const inputElement = document.querySelector('.react-datetime-picker__inputGroup__minute') as HTMLInputElement; // Replace with the actual class name
-            if(inputElement){
-                inputElement.value = `${minute}`; // Replace with the desired new value
-            }
-        }, minute);
+        const inputMinuteSelector = '.react-datetime-picker__inputGroup__minute'
+        await page.waitForSelector(inputMinuteSelector);
+        const inputMinuteElement = await page.$(inputMinuteSelector);
+        inputMinuteElement?.type(minute.toString());
 
         //await sleep(15000);
 
