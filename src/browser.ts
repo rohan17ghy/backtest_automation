@@ -35,7 +35,7 @@ export class BrowserFactory{
         console.log(process.env.EDGE_PATH);
         const browser = await puppeteer.launch({
             executablePath: process.env.EDGE_PATH,
-            slowMo: 50, 
+            slowMo: 15, 
             defaultViewport: null, 
             headless: false,
             args: [
