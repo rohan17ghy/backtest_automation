@@ -12,7 +12,7 @@ const main  = async () => {
     const symbol: Symbol = {
         name: Index.BANKNIFTY
     }
-    const dateTime = new Date(`2024-07-05T09:15:00+05:30`);
+    const dateTime = new Date(`2024-07-24T09:15:00+05:30`);
     console.log(await displayNearITMBNStrikes(dateTime));
 
     keepAlive();

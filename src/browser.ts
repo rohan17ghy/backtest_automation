@@ -39,7 +39,8 @@ export class BrowserFactory{
             defaultViewport: null, 
             headless: false,
             args: [
-                '--start-maximized' // Argument to start the browser in fullscreen mode
+                '--start-maximized', // Argument to start the browser in fullscreen mode
+                `--force-device-scale-factor=${process.env.ZOOM || 1}`
             ]
         });
         console.log(`Browser connected`);
@@ -71,7 +72,15 @@ export class GoCharting{
 
     private async init(): Promise<void> {
         this.ceBrowser = await BrowserFactory.getCEBrowser();
+        const ceSpotPage = await BrowserFactory.createPage(this.ceBrowser);
+        await this.navigateToPage(ceSpotPage, {name: "BANKNIFTY"});
+        await this.applyTheme(ceSpotPage);
+
         this.peBrowser = await BrowserFactory.getPEBrowser();
+        const peSpotPage = await BrowserFactory.createPage(this.peBrowser);
+        await this.navigateToPage(peSpotPage, {name: "BANKNIFTY"});
+        await this.applyTheme(peSpotPage);
+
         this.timeout = parseInt(process.env.TIMEOUT ?? "");
     }
 
@@ -98,6 +107,68 @@ export class GoCharting{
         await this.goToDateTime(page, dateTime);
     }
 
+    public async applyTheme(page: Page){
+        //Dark Mode
+        if (process.env.DARK_MODE == "true"){ 
+            await page.waitForSelector('.css-1urc7jq-Button-StyledTopBarButton-StyledRibbonButton');
+            await page.click('.css-1urc7jq-Button-StyledTopBarButton-StyledRibbonButton');
+
+            const swatchSelector = '.css-9a3oj9-Swatch';
+            await page.waitForSelector(swatchSelector);
+            await page.click(swatchSelector);
+
+            const bgColorPickerSelector = '.sketch-picker > .flexbox-fix:nth-child(3) > div:first-child > div:first-child > input';
+            await page.waitForSelector(bgColorPickerSelector);
+            const inputBgColorElement = await page.$(bgColorPickerSelector);
+            console.log(`Background color picker selector loaded`);
+            if (inputBgColorElement) {
+                await inputBgColorElement.click({count: 3});
+                await inputBgColorElement.press('Backspace');
+                await inputBgColorElement.type('1A1A19'); // Replace with the value you want to type
+            }
+
+            // Use $eval to get the last element with the class
+            const gridLinesHandle = await page.evaluateHandle(selector => {
+                const elements = document.querySelectorAll(selector);
+                return elements[elements.length - 1];
+            }, swatchSelector);
+
+            await gridLinesHandle.click();
+
+            console.log('Gridline options loaded');
+            
+
+            const gridLinesSelector = '.sketch-picker > .flexbox-fix:nth-child(3) > div:first-child > div:first-child > input';
+
+            
+            //This waitForSelector might not work properly because `gridLineSelector` and `bgColorPickerSelector` are same.
+            //Due to this waitForSelector might not actually wait for gridLinesSelector instead wait for bgColorPickerSelector and exit.
+            await sleep(2000);
+            await page.waitForSelector(gridLinesSelector);
+
+
+            const inputGridLinesElement = await page.$(gridLinesSelector);
+            console.log(`Gridlines color picker selector loaded`);
+            if (inputGridLinesElement) {
+                await inputGridLinesElement.click({count: 3});
+                await inputGridLinesElement.press('Backspace');
+                await inputGridLinesElement.type('F2F4F6'); // Replace with the value you want to type
+            }
+
+            const opacitySelector = '.sketch-picker > .flexbox-fix:nth-child(3) > div:last-child > div:first-child > input';
+            await page.waitForSelector(opacitySelector);
+            const opacityElement = await page.$(opacitySelector);
+            if(opacityElement){
+                await opacityElement.click({count: 3});
+                await opacityElement.press('Backspace');
+                await opacityElement.type('8');
+            }
+
+            await page.waitForSelector('.css-jihlgb-Altspan:last-of-type');
+            await page.click('.css-jihlgb-Altspan:last-of-type');
+        }
+    }
+
     public async closeDismissButtonIfPresent(page: Page){
         //Closing the dismiss button
         //await page.waitForSelector('#notification-dismiss');
@@ -108,7 +179,13 @@ export class GoCharting{
 
     public async closeAdIfPresent(page: Page){
         //Closing the ad
-        //await page.waitForSelector('.css-juko39-CloseContainer');
+        //Type 1 ad
+        if(await waitForSelectorWithBoolean(page, '.css-nnw530-CloseContainer')){
+            await page.click('.css-nnw530-CloseContainer');
+        }
+
+        //Closing the ad
+        //Type 2 ad
         if(await waitForSelectorWithBoolean(page, '.css-juko39-CloseContainer')){
             await page.click('.css-juko39-CloseContainer');
         }
@@ -132,7 +209,7 @@ export class GoCharting{
         
         //Here we can't track when the canvas has updated completely
         //Since canvas changes don't change the DOM directly
-        //So only option left is to keep a delay and 
+        //So only option left is to keep a delay and track the canvas changes
         await waitForCanvasUpdate(page, async () => {
             //Changing the timeframe
             await page.click('div[title="1 Minute"]');
