@@ -5,7 +5,8 @@
       "allowJs": true,
       "skipLibCheck": true,
       "strict": true,
-      "noEmit": true,
+      "rootDir": "./src",
+      "outDir": "./dist",
       "esModuleInterop": true,
       "module": "es6",
       "moduleResolution": "bundler",
@@ -18,6 +19,6 @@
         "@public/*": ["./public/*"],
       },
     },
-    "include": ["**/*.ts"],
+    "include": ["./src/**/*.ts"],
     "exclude": ["node_modules"],
 }
