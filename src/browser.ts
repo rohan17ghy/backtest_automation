@@ -10,6 +10,7 @@ export class BrowserFactory{
     private static _cePages: Page[];
     private static _peBrowserInstance: Browser | null;
     private static _pePages: Page[];
+    private static _browserInstance: Browser | null;
     public static async getCEBrowser(){
         if(!this._ceBrowserInstance){
             this._ceBrowserInstance = await this.initBrowser();
@@ -26,6 +27,14 @@ export class BrowserFactory{
         }
 
         return this._peBrowserInstance;
+    }
+
+    public static async getBrowser(){
+        if (!this._browserInstance){
+            this._browserInstance = await this.initBrowser();
+        }
+
+        return this._browserInstance;
     }
 
     private static async initBrowser(): Promise<Browser>{
@@ -62,15 +71,22 @@ export class BrowserFactory{
 export class GoCharting{
     public ceBrowser!: Browser;
     public peBrowser!: Browser;
+    public browser!: Browser;
     private timeout!: number;
     
-    public static async createInstance(): Promise<GoCharting>{
+    public static async createMultipleInstance(): Promise<GoCharting>{
         const instance = new GoCharting();
-        await instance.init();
+        await instance.initMultipleInstance();
         return instance
     }
 
-    private async init(): Promise<void> {
+    public static async createInstance(): Promise<GoCharting>{
+        const instance  = new GoCharting();
+        await instance.init();
+        return instance;
+    }
+
+    private async initMultipleInstance(): Promise<void> {
         this.ceBrowser = await BrowserFactory.getCEBrowser();
         const ceSpotPage = await BrowserFactory.createPage(this.ceBrowser);
         await this.navigateToPage(ceSpotPage, {name: "BANKNIFTY"});
@@ -80,6 +96,16 @@ export class GoCharting{
         const peSpotPage = await BrowserFactory.createPage(this.peBrowser);
         await this.navigateToPage(peSpotPage, {name: "BANKNIFTY"});
         await this.applyTheme(peSpotPage);
+
+        
+        this.timeout = parseInt(process.env.TIMEOUT ?? "");
+    }
+
+    private async init(): Promise<void> {
+        this.browser = await BrowserFactory.getBrowser();
+        const page = await BrowserFactory.createPage(this.browser);
+        await this.navigateToPage(page, {name: "BANKNIFTY"});
+        await this.applyTheme(page);
 
         this.timeout = parseInt(process.env.TIMEOUT ?? "");
     }
@@ -167,6 +193,10 @@ export class GoCharting{
             await page.waitForSelector('.css-jihlgb-Altspan:last-of-type');
             await page.click('.css-jihlgb-Altspan:last-of-type');
         }
+
+        //Need to add sleep for the theme to reflect and get completely ready
+        //Else if we create another page then it will not apply the new theme
+        await sleep(5000);
     }
 
     public async closeDismissButtonIfPresent(page: Page){
@@ -331,7 +361,7 @@ export async function displayBestBNStrike(dateTime: Date){
     const browser = await BrowserFactory.getCEBrowser();
 
     const page = await browser.newPage();
-    const goCharting = await GoCharting.createInstance();
+    const goCharting = await GoCharting.createMultipleInstance();
     goCharting.navigateToPageWithDate(page, strike.ceStrike, dateTime);
     
     const page2 = await browser.newPage();
@@ -343,11 +373,20 @@ export async function displayNearITMBNStrikes(dateTime: Date){
 
     // const browser = await BrowserFactory.getCEBrowser();
     // const page = await browser.newPage();
-    const goCharting = await GoCharting.createInstance();
+    const goCharting = await GoCharting.createMultipleInstance();
 
     console.log(`Datetime at displayNearITMBNStrikes: ${dateTime}`);
     // await goCharting.navigateToPageWithDate(page, strikes.ceStrikes ? {name: strikes.ceStrikes[0]} : {name: ""}, dateTime);
     // await goCharting.getOHLC(page);
+
     await goCharting.displayStrikes(goCharting.ceBrowser, strikes.ceStrikes as string[], dateTime);
     await goCharting.displayStrikes(goCharting.peBrowser, strikes.peStrikes as string[], dateTime);
+}
+
+export async function displayBNPremium(strike: string, dateTime: Date){
+    const browser = await BrowserFactory.getBrowser();
+    const goCharting = await GoCharting.createInstance();
+
+    const spot = "BANKNIFTY";
+    await goCharting.displayStrikes(goCharting.browser, [spot, strike], dateTime);
 }

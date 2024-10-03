@@ -103,7 +103,7 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
     const timeoutDuration = 90000;
     const page = await browser.newPage();
 
-    const goCharting = await GoCharting.createInstance();
+    const goCharting = await GoCharting.createMultipleInstance();
 
     //Navigate to page with symbol
     await goCharting.navigateToPage(page, symbol);
