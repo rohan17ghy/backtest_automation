@@ -12,13 +12,13 @@ const main  = async () => {
     const symbol: Symbol = {
         name: Index.BANKNIFTY
     }
-    const dateTime = new Date(`2024-09-20T09:15:00+05:30`);
+    const dateTime = new Date(`2024-09-26T09:15:00+05:30`);
 
     //Backtesting
-    //console.log(await displayNearITMBNStrikes(dateTime));
+    console.log(await displayNearITMBNStrikes(dateTime));
 
     //Display 1 premium chart along with spot
-    console.log(await displaySinglePremium("BANKNIFTY24SEP53100CE", dateTime));
+    //console.log(await displaySinglePremium("BANKNIFTY24SEP53100CE", dateTime));
 
     keepAlive();
 }
