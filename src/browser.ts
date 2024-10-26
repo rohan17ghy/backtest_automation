@@ -329,6 +329,118 @@ export class GoCharting{
         console.log('OHLC loaded to the assigned date and time');
     }
 
+    public async scrapeGoToDateTime(page: Page, dateTime: Date){
+        const date = dateTime.getDate();
+        const month = dateTime.getMonth() + 1; // Months have zero based index
+        const year = dateTime.getFullYear();
+        let hour = dateTime.getHours();
+        const ampm = hour >= 12 ? 'pm' : 'am';
+        hour = hour % 12; // Convert 24-hour to 12-hour format
+        hour = hour ? hour : 12; // If hours is 0, set it to 12 (midnight or noon)
+
+        const minute = dateTime.getMinutes();
+
+        console.log(`Navigating to ${date}/${month}/${year} ${hour}:${minute}, DateTime: ${dateTime}`);
+
+        //TODO: Go to the date time
+        // await this.closeDismissButtonIfPresent(page);
+    
+        // await this.closeAdIfPresent(page);
+
+        // await page.click("#interval-selector-btn");
+        
+        // //Here we can't track when the canvas has updated completely
+        // //Since canvas changes don't change the DOM directly
+        // //So only option left is to keep a delay and track the canvas changes
+        // await waitForCanvasUpdate(page, async () => {
+        //     //Changing the timeframe
+        //     await page.click('div[title="1 Minute"]');
+        // });
+
+        //console.log('Giving a timeout of 5 sec');
+        //await sleep(5000);
+
+        //Clicking date time picker
+        await page.click('#go-to-date-btn');
+        await page.waitForSelector('.react-datetime-picker');
+        console.log('DateTime picker loaded');
+
+        //Changing the date
+        // await page.click('.react-datetime-picker__calendar-button');  
+        // await page.waitForSelector('.react-datetime-picker__calendar--open');
+        // await page.waitForSelector(`button > abbr[aria-label="${Month[month]} ${date}, ${year}"]`);
+        // const buttonElement = await page.$(`button > abbr[aria-label="${Month[month]} ${date}, ${year}"]`);
+        // if (buttonElement) {
+        //     console.log(`Found the date button ${JSON.stringify(buttonElement)}`);
+        //     var button2May = await buttonElement.click();
+        //     console.log(`Button: ${button2May}`);
+        // }else{
+        //     console.log(`Didn't find the date button`);
+        // }
+
+        const inputMonthSelector = `input.react-datetime-picker__inputGroup__month`;
+        await page.waitForSelector(inputMonthSelector);
+        const inputMonthElement = await page.$(inputMonthSelector);
+        inputMonthElement?.type(month.toString());
+
+        const inputDaySelector = `input.react-datetime-picker__inputGroup__day`;
+        await page.waitForSelector(inputDaySelector);
+        const inputDayElement = await page.$(inputDaySelector);
+        inputDayElement?.type(date.toString());
+
+        const inputYearSelector = `input.react-datetime-picker__inputGroup__year`;
+        await page.waitForSelector(inputYearSelector);
+        const inputYearElement = await page.$(inputYearSelector);
+        inputYearElement?.type(year.toString());
+
+        //`react-datetime-picker__inputGroup__month`
+
+        //console.log('Giving a timeout of 5 sec');
+        //await sleep(15000);
+        //console.log(`Hour: ${hour}, Minute: ${minute}`);
+
+        // Changing the hour
+        const inputHourSelector = '.react-datetime-picker__inputGroup__hour';
+        await page.waitForSelector(inputHourSelector);
+        const inputHourElement = await page.$(inputHourSelector);
+        inputHourElement?.type(hour.toString());
+
+        //Changing the minute
+        const inputMinuteSelector = '.react-datetime-picker__inputGroup__minute'
+        await page.waitForSelector(inputMinuteSelector);
+        const inputMinuteElement = await page.$(inputMinuteSelector);
+        inputMinuteElement?.type(minute.toString());
+
+        //await sleep(15000);
+
+        //Changing am, pm
+        await page.waitForSelector('.react-datetime-picker__inputGroup__amPm');
+        await page.select('.react-datetime-picker__inputGroup__amPm', ampm);
+    
+        //console.log('Giving a timeout of 5 sec');
+        //await sleep(5000);
+        //await waitForCanvasUpdate(page, "canvas#main");
+
+        // console.log('Giving a timeout of 5 sec');
+        // await sleep(5000);
+        await waitForCanvasUpdate(page, async () => {
+            await page.evaluate(() => {
+                const buttons = Array.from(document.querySelectorAll('button'));
+                // Iterate through each button to find the one with text content 'Apply'
+                const applyButton = buttons.find(button => button.textContent?.trim() === 'Apply');
+                // Click the button if found
+                if (applyButton) {
+                    applyButton.click();
+                } else {
+                    console.log('Button not found.');
+                }
+            });
+        });
+
+        await page.waitForSelector('.tooltip-ohlc');
+        console.log('OHLC loaded to the assigned date and time');
+    }
+
     public async getOHLC(page: Page){
         const childElements: any[] = await page.evaluate(() => {
             // Select the parent div using class name
@@ -383,7 +495,7 @@ export async function displayNearITMBNStrikes(dateTime: Date){
     await goCharting.displayStrikes(goCharting.peBrowser, strikes.peStrikes as string[], dateTime);
 }
 
-export async function displayBNPremium(strike: string, dateTime: Date){
+export async function displaySinglePremium(strike: string, dateTime: Date){
     const browser = await BrowserFactory.getBrowser();
     const goCharting = await GoCharting.createInstance();
 

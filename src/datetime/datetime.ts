@@ -39,3 +39,13 @@ export function compareDates(date1: string, date2: string): number {
         return 0; // date1 is the same as date2
     }
 }
+
+export function addMinutes(date: Date, minutes: number): Date {
+  return new Date(date.getTime() + minutes * 60000); // 60000 ms in one minute
+}
+
+export function getMarketCloseTime(currentDateTime: Date){
+    const currentMarketCloseTime = new Date(currentDateTime);
+    currentMarketCloseTime.setHours(15, 30, 0, 0);
+    return currentMarketCloseTime;
+}

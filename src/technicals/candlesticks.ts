@@ -8,18 +8,20 @@ import { getBNExpiry, buildITMBNOptionStrikes, OptionStrikes, getBNPremiumSymbol
 import { BrowserFactory, GoCharting } from "@/browser";
 import type { Symbol } from "@/types";
 
-class Candle {
+export class Candle {
     o: number;
     h: number;
     l: number;
     c: number;
     color: CandleColor;
+    dateTime?: Date;
 
-    constructor(o: number, h: number, l: number, c: number){
+    constructor(o: number, h: number, l: number, c: number, dateTime?: Date){
         this.o = o;
         this.h = h;
         this.l = l;
         this.c = c;
+        this.dateTime = dateTime;
 
         this.color = o-c > 0 ? CandleColor.Green : CandleColor.Red;
     }
@@ -73,13 +75,19 @@ export enum Index{
 }
 
 
-
-
-
 export enum CandleColor{
     Green = "Green",
     Red = "Red"
 }
+
+export enum Interval {
+    Min_1 = 1,
+    Min_5 = 5 * Min_1,
+    Min_15 = 15 * Min_1,
+    Min_30 = 30 * Min_1,
+    Hour_1 = 60 * Min_1,
+}
+
 
 export async function get1minCandle(symbol: Symbol, dateTime: Date){
     // const browser = await puppeteer.launch({
