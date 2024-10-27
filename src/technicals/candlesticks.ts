@@ -74,6 +74,11 @@ export enum Index{
     NIFTY = "NSE:NIFTY"
 }
 
+export enum ApiIndex{
+    BANKNIFTY = "NSE:NIFTYBANK-INDEX",
+    NIFTY = "NSE:NIFTY50-INDEX"
+}
+
 
 export enum CandleColor{
     Green = "Green",
@@ -244,13 +249,13 @@ export async function get1minCandle(symbol: Symbol, dateTime: Date){
 
 //We will select a strike where the first candle is not an exception
 //The premium should be in my range of 500-800 range
-export async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date): Promise<{
+export async function getBNBestStrikeBasedOnFirstCandle(symbol: Symbol, dateTime: Date): Promise<{
     ceStrike: Symbol,
     peStrike: Symbol
 }>{
     const dateMonthYear = dateMonthYearString(dateTime);
     console.log(`DateMonthYear: ${dateMonthYear}`);
-    const expiry = await getBNExpiry(dateMonthYear);
+    const expiry = await getBNExpiry({name: Index.BANKNIFTY}, dateMonthYear);
     if(expiry == null){
         throw new Error(`Expiry not found for ${dateTime.toISOString()}`);
     }
@@ -262,7 +267,7 @@ export async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date): Promise
     };
 
     //const bnCandle = await get1minCandle(bnSymbol, dateTime);
-    const bnCandle = await getSingleCandle("NSE:NIFTYBANK-INDEX", 1, dateTime);
+    const bnCandle = await getSingleCandle(symbol, 1, dateTime);
     console.log(`1st min candle: ${JSON.stringify(bnCandle)}`);
     const startingPrice = parseFloat(bnCandle.candles[0][1]);
     const endingPrice = parseFloat(bnCandle.candles[0][4]);
@@ -271,7 +276,7 @@ export async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date): Promise
 
     const atmPrice = (startingPrice + endingPrice) / 2;
 
-    const optionStrikes = await buildITMBNOptionStrikes(atmPrice, 10);
+    const optionStrikes = await buildITMBNOptionStrikes(symbol, atmPrice, 10);
     console.log(`Option strikes: ${JSON.stringify(optionStrikes)}`);
 
     const premiumLow = parseInt(process.env.PREMIUM_LOW ?? "");
@@ -285,10 +290,10 @@ export async function getBNBestStrikeBasedOnFirstCandle(dateTime: Date): Promise
 
 }
 
-export async function getBNNearITMStrikes(dateTime: Date): Promise<OptionStrikes>{
+export async function getBNNearITMStrikes(symbol: Symbol, dateTime: Date): Promise<OptionStrikes>{
     const dateMonthYear = dateMonthYearString(dateTime);
     console.log(`DateMonthYear: ${dateMonthYear}`);
-    const expiry = await getBNExpiry(dateMonthYear);
+    const expiry = await getBNExpiry(symbol, dateMonthYear);
     if(expiry == null){
         throw new Error(`Expiry not found for ${dateTime.toISOString()}`);
     }
@@ -300,7 +305,7 @@ export async function getBNNearITMStrikes(dateTime: Date): Promise<OptionStrikes
     };
 
     //const bnCandle = await get1minCandle(bnSymbol, dateTime);
-    const bnCandle = await getSingleCandle("NSE:NIFTYBANK-INDEX", 1, dateTime);
+    const bnCandle = await getSingleCandle(symbol, 1, dateTime);
     console.log(`1st min candle: ${JSON.stringify(bnCandle)}`);
     const openingPrice = parseFloat(bnCandle.candles[0][1]);
     const closingPrice = parseFloat(bnCandle.candles[0][4]);
@@ -309,10 +314,10 @@ export async function getBNNearITMStrikes(dateTime: Date): Promise<OptionStrikes
 
     //const atmPrice = (openingPrice + closingPrice) / 2;
 
-    const optionsChain = await getBNOptionsChain(new Date(expiry));
+    const optionsChain = await getBNOptionsChain(symbol, new Date(expiry));
     //console.log(`Options Chain : ${JSON.stringify(optionsChain)}`);
 
-    const optionStrikes = await buildITMBNOptionStrikes(openingPrice, 5);
+    const optionStrikes = await buildITMBNOptionStrikes(symbol, openingPrice, symbol.strikesCount as number);
     console.log(`Option strikes: ${JSON.stringify(optionStrikes)}`);
 
     const bnSymbols = await getBNPremiumSymbols(optionsChain ?? [], optionStrikes);

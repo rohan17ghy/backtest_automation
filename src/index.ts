@@ -11,12 +11,14 @@ import type { Symbol } from '@/types';
 
 const main  = async () => {
     const symbol: Symbol = {
-        name: Index.BANKNIFTY
+        name: Index.NIFTY,
+        optionsInterval: 50,
+        strikesCount: 7
     }
     const dateTime = new Date(`2024-10-23T09:15:00+05:30`);
 
     //Backtesting
-    console.log(await displayNearITMBNStrikes(dateTime));
+    console.log(await displayNearITMBNStrikes(symbol, dateTime));
 
     //Display 1 premium chart along with spot
     //console.log(await displaySinglePremium("BANKNIFTY24SEP53100CE", dateTime));

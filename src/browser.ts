@@ -467,8 +467,8 @@ export class GoCharting{
 
 }
 
-export async function displayBestBNStrike(dateTime: Date){
-    const strike = await getBNBestStrikeBasedOnFirstCandle(dateTime);
+export async function displayBestBNStrike(symbol: Symbol, dateTime: Date){
+    const strike = await getBNBestStrikeBasedOnFirstCandle(symbol, dateTime);
 
     const browser = await BrowserFactory.getCEBrowser();
 
@@ -480,8 +480,8 @@ export async function displayBestBNStrike(dateTime: Date){
     goCharting.navigateToPageWithDate(page2, strike.peStrike, dateTime);
 }
 
-export async function displayNearITMBNStrikes(dateTime: Date){
-    const strikes = await getBNNearITMStrikes(dateTime);
+export async function displayNearITMBNStrikes(symbol: Symbol, dateTime: Date){
+    const strikes = await getBNNearITMStrikes(symbol, dateTime);
 
     // const browser = await BrowserFactory.getCEBrowser();
     // const page = await browser.newPage();

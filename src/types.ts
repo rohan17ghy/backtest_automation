@@ -15,5 +15,7 @@ export type OptionsChain = {
 }
 
 export type Symbol = {
-    name: string
+    name: string,
+    optionsInterval?: number,
+    strikesCount?: number
 }

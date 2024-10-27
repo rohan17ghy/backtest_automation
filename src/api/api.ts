@@ -1,7 +1,9 @@
 import axios, { AxiosResponse } from 'axios';
 import { OptionType } from '@/technicals/options';
 import { dateMonthYearString } from '@/datetime/datetime';
-import {OptionsChain} from '@/types';
+import {OptionsChain, Symbol} from '@/types';
+import { Index } from '@/technicals/candlesticks';
+import { mapToApiSymbol } from '@/utils';
 
 export const HTTPStatus = {
     OK: 200,
@@ -19,9 +21,14 @@ export const HTTPStatus = {
     GATEWAY_TIMEOUT: 504
 };
 
-export async function getBNExpiriesGoCharting(){
+export async function getBNExpiriesGoCharting(symbol: Symbol){
     try{
-        const result  = await axios.get(`https://procharting.in/api/instruments/search/expiries?q=NSE:OPTIONS:BANKNIFTY`,
+        const symbolArr = symbol.name.split(':');
+        if (symbolArr.length < 2){
+            throw new Error(`${symbol.name} is not valid for getting expiries`);
+        }
+        const q = `${symbolArr[0]}:OPTIONS:${symbolArr[1]}`;
+        const result  = await axios.get(`https://procharting.in/api/instruments/search/expiries?q=${q}`,
         {
             headers: {
             'Content-Type': 'application/json',
@@ -39,9 +46,14 @@ export async function getBNExpiriesGoCharting(){
     }
 }
 
-export async function getBNSymbolGoCharting(strikePrice: number, optionType: OptionType, expiry: string){
+export async function getBNSymbolGoCharting(symbol: Symbol, strikePrice: number, optionType: OptionType, expiry: string){
     try{
-        const result  = await axios.get(`https://procharting.in/api/instruments/search_at_expiry?q=NSE:OPTIONS:BANKNIFTY:${expiry}`,
+        const symbolArr = symbol.name.split(':');
+        if (symbolArr.length < 2){
+            throw new Error(`${symbol.name} is not valid for getting expiries`);
+        }
+        const q = `${symbolArr[0]}:OPTIONS:${symbolArr[1]}`;
+        const result  = await axios.get(`https://procharting.in/api/instruments/search_at_expiry?q=${q}:${expiry}`,
         {
             headers: {
             'Content-Type': 'application/json',
@@ -62,9 +74,14 @@ export async function getBNSymbolGoCharting(strikePrice: number, optionType: Opt
     }
 }
 
-export async function getBNOptionsData(expiry: Date): Promise<OptionsChain[] | null>{
+export async function getBNOptionsData(symbol: Symbol, expiry: Date): Promise<OptionsChain[] | null>{
     try{
-        const result = await axios.get(`https://procharting.in/api/instruments/search_at_expiry?q=NSE:OPTIONS:BANKNIFTY:${dateMonthYearString(expiry)}`,
+        const symbolArr = symbol.name.split(':');
+        if (symbolArr.length < 2){
+            throw new Error(`${symbol.name} is not valid for getting expiries`);
+        }
+        const q = `${symbolArr[0]}:OPTIONS:${symbolArr[1]}`;
+        const result = await axios.get(`https://procharting.in/api/instruments/search_at_expiry?q=${q}:${dateMonthYearString(expiry)}`,
         {
             headers: {
             'Content-Type': 'application/json',
@@ -84,10 +101,11 @@ export async function getBNOptionsData(expiry: Date): Promise<OptionsChain[] | n
     
 }
 
-export async function getSingleCandle(symbol: any, interval: number, dateTime: Date){
+export async function getSingleCandle(symbol: Symbol, interval: number, dateTime: Date){
     
+    const apiSymbol = mapToApiSymbol(symbol);
     const data = {
-        symbol,
+        symbol: apiSymbol,
         interval,
         dateTime
     };
