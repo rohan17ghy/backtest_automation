@@ -29,12 +29,12 @@ const main = async () => {
         optionsInterval: 50,
         strikesCount: 7,
     };
-    const dateTime = new Date(`2025-02-24T09:15:00+05:30`);
+    const dateTime = new Date(`2025-06-12T09:15:00+05:30`);
     const endTime = new Date(dateTime);
     endTime.setDate(endTime.getDate() + 1);
 
     //Backtesting
-    //console.log(await displayNearITMBNStrikes(symbol, dateTime));
+    console.log(await displayNearITMBNStrikes(symbol, dateTime));
 
     //Display 1 premium chart along with spot
     //console.log(await displaySinglePremium("BANKNIFTY24SEP53100CE", dateTime));

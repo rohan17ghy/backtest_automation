@@ -145,10 +145,10 @@ export class GoCharting {
         //Dark Mode
         if (process.env.DARK_MODE == "true") {
             await page.waitForSelector(
-                ".css-1urc7jq-Button-StyledTopBarButton-StyledRibbonButton"
+                ".css-1mzyipj-Button-StyledTopBarButton-StyledRibbonButton"
             );
             await page.click(
-                ".css-1urc7jq-Button-StyledTopBarButton-StyledRibbonButton"
+                ".css-1mzyipj-Button-StyledTopBarButton-StyledRibbonButton"
             );
 
             const swatchSelector = ".css-9a3oj9-Swatch";
@@ -202,8 +202,8 @@ export class GoCharting {
                 await opacityElement.type("8");
             }
 
-            await page.waitForSelector(".css-jihlgb-Altspan:last-of-type");
-            await page.click(".css-jihlgb-Altspan:last-of-type");
+            await page.waitForSelector(".css-azpulp-Altspan:last-of-type");
+            await page.click(".css-azpulp-Altspan:last-of-type");
         }
 
         //Need to add sleep for the theme to reflect and get completely ready
